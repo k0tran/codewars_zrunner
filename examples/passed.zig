@@ -1,5 +1,5 @@
 const std = @import("std");
-const mul = @import("main.zig").multiply;
+const mul = @import("mult.zig").multiply;
 
 test "simple1" {
     try std.testing.expectEqual(mul(2, 5), 10);

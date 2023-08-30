@@ -1,68 +1,58 @@
-# WARNING
+# About
 
-Currently, because zig testing lib doesn't support "quiet mode" (always prints errors) \
-[Zig issue](https://github.com/ziglang/zig/issues/14245). \
-[Coderunner issue](https://github.com/codewars/runner/issues/136).
+This repository used as zig and codewars integration playground ([codewars test report format](https://github.com/codewars/runner/blob/main/docs/messages.md) for zig test)
 
-## Example 
+## Current state
+
+[Coderunner issue](https://github.com/codewars/runner/issues/136)
+
+Until [zig#14245](https://github.com/ziglang/zig/issues/14245) is fixed there is no way to output test fail messages in format required by codewars. This happens because functions `std.testing.*` are printing error message (via `std.debug.print`) BEFORE function returns error. So it's impossible to print custom prefix (because test is not guaranteed fail) nor configure message output.  
+
+Maybe something will be possible when [zig#5738](https://github.com/ziglang/zig/issues/5738) arrive. We might be able to filter test fail messages and then print them out with the desired format through custom `log` implementation.
+
+## Examples
+
+In [mult.zig](examples/mult.zig) there is simple multiplication function which is tested in:
+- [passed.zig](examples/passed.zig) - 3 passing tests
+- [failed.zig](examples/failed.zig) - 2 passing tests and 1 failing
+
+Those tests can be run:
 ```shell
-$ zig test --test-runner codewars_runner.zig examples/failed.zig
-<IT>::>simple1
-<PASSED::>simple1
-<COMPLETEDIN::>0
-
-<IT>::>simple2
-<PASSED::>simple2
-<COMPLETEDIN::>0
-
-<IT>::>not simple
-expected 36504, found 100
-<ERROR::>TestExpectedEqual
-<COMPLETEDIN::>0
-
+zig test examples/passed.zig
+# or
+zig test examples/failed.zig
 ```
 
-Here you can see `expected 36504, found 100`. It is printed directly from `std.testing.expectEqual` via `std.debug.print`.
+## Runners
 
-The only solution I can see (except fixing stdlib) - abandon error descriptions, stderr and use stdout only. This is implemented in [here]:(noerrmes_runner.zig)
+Current [experimental implementation](czrunner.zig) does not support printing test fail messages but it can produce test pass-fail base info (reading what printed to stderr by test function doesn't work):
+
 ```shell
-$ zig test --test-runner noerrmes_runner.zig examples/failed.zig 2> /dev/null
-<IT>::>simple1
-<PASSED::>simple1
-<COMPLETEDIN::>0
+$ zig test --test-runner czrunner.zig examples/failed.zig 2> /dev/null 
+<IT::>simple1
 
-<IT>::>simple2
-<PASSED::>simple2
-<COMPLETEDIN::>0
+<PASSED::>
 
-<IT>::>not simple
-<ERROR::>TestExpectedEqual
-<COMPLETEDIN::>0
+<IT::>simple2
+
+<PASSED::>>
+
+<IT::>not simple
+
+<FAILED::>TestExpectedEqual
 ```
 
-# Zig test runner for codewars
-
-This is test runner implementation for codewars coderunner.
-
-## Motivation
-
-As mentioned in codewars [zig issue](https://github.com/codewars/runner/issues/136) zig 0.11.0 supports custom coderunner.
-
-So I've took my time and implemented one, according to [codewars format](https://github.com/codewars/runner/blob/main/docs/messages.md)
-
-## How to build/test?
-
-To run any zig tests with this runnner you need to specify it with `--test-runner` flag:
 ```shell
-zig test --test-runner codewars_runner.zig examples/test_multiply.zig
+$ zig test --test-runner czrunner.zig examples/passed.zig 2> /dev/null
+<IT::>simple1
+
+<PASSED::>
+
+<IT::>simple2
+
+<PASSED::>
+
+<IT::>simple3
+
+<PASSED::>
 ```
-
-## Project structure
-
-For testing I chose trivial task - product of two numbers
-
-`test_runner.zig` - actual codewars test runner \
-`examples/` - directory with several example test-files:
-- `main.zig` - testing function;
-- `passed.zig` - three correct tests;
-- `failed.zig` - two correct and one failed tests.
